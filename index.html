@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>สวัสดีแก้ม</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;box-sizing:border-box}
+body{height:100vh;height:100dvh;display:grid;place-items:center;background:#f1f1ef;color:#161616;font-family:'Prompt',sans-serif;cursor:pointer;transition:background .6s,color .6s;overflow:hidden}
+body.end{background:#161616;color:#f1f1ef}
+main{padding:2rem}
+#line{font-weight:800;font-size:clamp(2rem,8vw,5.5rem);line-height:1.25;max-width:14em;text-align:left}
+#bar{position:fixed;top:0;left:0;height:6px;background:currentColor;width:0;transition:width .4s}
+#hint{position:fixed;bottom:1rem;width:100%;text-align:center;font-weight:500;opacity:.5;padding:0 1rem;pointer-events:none}
+#btn{display:none;margin-top:2rem;padding:.8rem 2rem;font:800 1.2rem 'Prompt';background:#f1f1ef;color:#161616;border:0;border-radius:99px;cursor:pointer}
+
+/* หน้าสุดท้าย (แกลเลอรี) */
+#title{display:none;position:fixed;top:1.2rem;width:100%;text-align:center;font-weight:800;font-size:clamp(1.8rem,7vw,3.2rem);pointer-events:none}
+#stage{display:none;position:fixed;inset:0}
+body.gallery main{display:none}
+body.gallery #title,body.gallery #stage{display:block}
+.it{position:absolute;width:var(--w);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.it.dragging{cursor:grabbing}
+.it img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 10px 18px #000a);transform-origin:50% 100%}
+.it.tap{cursor:pointer}
+
+/* หมากดแล้วขยับนิดๆ */
+.it.wig img{animation:wig .7s ease-in-out}
+@keyframes wig{
+ 0%{transform:none}
+ 20%{transform:translateY(-12px) rotate(-5deg)}
+ 40%{transform:translateY(0) scale(1.05,.95)}
+ 60%{transform:translateY(-7px) rotate(4deg)}
+ 80%{transform:translateY(0) scale(1.02,.98)}
+ 100%{transform:none}
+}
+@media(prefers-reduced-motion:reduce){.it.wig img{animation:none}}
+</style></head><body>
+<div id="bar"></div>
+<main><div id="line"></div><button id="btn"></button></main>
+<div id="title"></div>
+<div id="stage"></div>
+<div id="hint">แตะที่หน้าจอเพื่ออ่านต่อ</div>
+<script>
+// ===== แก้ข้อความตรงนี้ =====
+const LINES=[
+ "สวัสดีแก้ม",
+ "ก่อนอื่น ขอบคุณนะ",
+ "ที่ให้โอกาสเราอีกครั้ง",
+ "ใจจริงของเรา",
+ "อยากปล่อยเธอไป",
+ "ไม่อยากให้เธอต้องมาเสียใจกับเราอีกแล้ว",
+ "ขอบคุณที่ให้โอกาสคนแบบเราอีกรอบนะ",
+ "และเราขอโทษนะที่ทำเธอเสียใจ",
+ "เรารู้ว่าเราพูดคำนี้หลายรอบแล้ว",
+ "ครั้งนี้",
+ "เราจะพิสูจน์ด้วยการกระทำ ไม่ใช่แค่คำพูด",
+ "ขอบคุณที่ยังอยู่ด้วยกันนะ"
+];
+const BUTTON_TEXT="กดตรงนี้";
+const FINAL_MESSAGE="รักนะ ❤";
+const GALLERY_HINT="ลากรูปเล่นได้นะจ๊ะ";
+
+// รูปในหน้าสุดท้าย
+// w = ความกว้าง | r = องศาที่เอียง | wiggle:true = แตะแล้วขยับนิดๆ
+// p = ตำแหน่งตอนถือมือถือแนวตั้ง | l = ตำแหน่งตอนจอกว้าง (คอม)
+// x,y เป็นเลข 0-100 (x: 0=ซ้ายสุด 100=ขวาสุด | y: 0=บนสุด 100=ล่างสุด)
+const ITEMS=[
+ {src:"img/couple-b.png", w:"min(62vw,46vh)", r:-3, p:{x:4, y:2},   l:{x:8, y:0}},
+ {src:"img/couple-a.png", w:"min(50vw,36vh)", r:4,  p:{x:96,y:34},  l:{x:36,y:20}},
+ {src:"img/dog-a.png",    w:"min(40vw,28vh)", r:-4, p:{x:6, y:96},  l:{x:70,y:6},   wiggle:true},
+ {src:"img/dog-b.png",    w:"min(44vw,30vh)", r:3,  p:{x:94,y:68},  l:{x:94,y:100}, wiggle:true}
+];
+// ===========================
+
+let i=0,z=1;
+const $=id=>document.getElementById(id);
+const line=$('line'),bar=$('bar'),btn=$('btn'),hint=$('hint'),stage=$('stage');
+btn.textContent=BUTTON_TEXT;
+line.textContent=LINES[0];
+bar.style.width=(100/LINES.length)+'%';
+
+function next(e){
+  if(e&&e.target===btn)return;
+  if(document.body.classList.contains('gallery'))return;
+  if(i<LINES.length-1){
+    i++;
+    line.textContent=LINES[i];
+    bar.style.width=((i+1)/LINES.length*100)+'%';
+    if(i===LINES.length-1){document.body.classList.add('end');hint.style.display='none';btn.style.display='block';}
+  }
+}
+document.body.addEventListener('click',next);
+document.addEventListener('keydown',e=>{if(e.key===' '||e.key==='ArrowRight')next();});
+
+// ----- ทำให้ลากได้ -----
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function makeDraggable(el,onTap){
+  let sx,sy,ox,oy,moved=false;
+  el.addEventListener('pointerdown',e=>{
+    el.setPointerCapture(e.pointerId);
+    sx=e.clientX;sy=e.clientY;ox=el.offsetLeft;oy=el.offsetTop;moved=false;
+    el.style.zIndex=++z;el.classList.add('dragging');
+  });
+  el.addEventListener('pointermove',e=>{
+    if(!el.hasPointerCapture(e.pointerId))return;
+    const dx=e.clientX-sx,dy=e.clientY-sy;
+    if(Math.abs(dx)+Math.abs(dy)>6)moved=true;
+    if(!moved)return;
+    el.style.left=clamp(ox+dx,-el.offsetWidth*.3,innerWidth-el.offsetWidth*.7)+'px';
+    el.style.top=clamp(oy+dy,40,innerHeight-el.offsetHeight*.6)+'px';
+  });
+  const end=()=>{el.classList.remove('dragging');};
+  el.addEventListener('pointerup',()=>{end();if(!moved&&onTap)onTap();});
+  el.addEventListener('pointercancel',end);
+}
+
+// ----- สร้างรูปในหน้าสุดท้าย -----
+function buildGallery(){
+  const portrait=innerHeight>innerWidth;
+  ITEMS.forEach(it=>{
+    const box=document.createElement('div');
+    box.className='it';
+    box.style.setProperty('--w',it.w);
+    box.style.rotate=(it.r||0)+'deg';
+    const img=new Image();img.src=it.src;img.alt='';img.draggable=false;
+    box.appendChild(img);
+    let tap=null;
+    if(it.wiggle){
+      box.classList.add('tap');
+      box.addEventListener('animationend',()=>box.classList.remove('wig'));
+      tap=()=>{box.classList.remove('wig');void box.offsetWidth;box.classList.add('wig');};
+    }
+    stage.appendChild(box);
+    makeDraggable(box,tap);
+    const pos=portrait?it.p:it.l;
+    const place=()=>{
+      box.style.left=(pos.x/100*(innerWidth-box.offsetWidth))+'px';
+      box.style.top=(60+pos.y/100*(innerHeight-100-box.offsetHeight))+'px';
+    };
+    img.complete?place():img.addEventListener('load',place);
+  });
+}
+
+btn.onclick=()=>{
+  $('title').textContent=FINAL_MESSAGE;
+  hint.textContent=GALLERY_HINT;hint.style.display='block';
+  document.body.classList.add('gallery');
+  if(!stage.children.length)buildGallery();
+};
+</script></body></html>
